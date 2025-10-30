@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "ANTI YT SHORTS - β",
+  "version": "2.0.0",
+  "description": "YouTubeのショートを非表示にする拡張",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "permissions": ["storage", "tabs", "scripting", "activeTab"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content_scripts/anti-shorts.js"],
+      "css": ["content_scripts/anti-shorts.css"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["assets/*"], "matches": ["*://*.youtube.com/*"] }
+  ]
+}
