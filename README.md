@@ -8,7 +8,7 @@
 “つい見ちゃう”を卒業し、より穏やかなネット体験を。
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/yourname/anti-youtube-shorts?color=brightgreen)
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 </div>
@@ -48,7 +48,7 @@ Chrome拡張機能です。検索結果やサイドバー、タグ領域に現�
 ### ✅ 1. ダウンロード
 
 1. このリポジトリ右上の **「Code → Download ZIP」** をクリック。
-2. ZIP を展開し、フォルダ名が `anti-youtube-shorts` などになっていることを確認。
+2. ZIP を展開し、フォルダ名が `anti-youtube-shorts-main` などになっていることを確認。
 
 ### ⚙️ 2. 拡張機能を読み込む
 
@@ -56,12 +56,12 @@ Chrome拡張機能です。検索結果やサイドバー、タグ領域に現�
 ```chrome://extensions/```
 2. 右上の「デベロッパーモード」を ON にする。
 3. 「パッケージ化されていない拡張機能を読み込む」をクリック。
-4. 展開したフォルダ（例：anti-youtube-shorts/）を選択。
+4. 展開したフォルダ（例：anti-youtube-shorts-main/）を選択。
 
 ### 🎛️ 3. 動作確認
 
 1. YouTube を開く。
-2. 拡張アイコン（猫ロゴ or 赤い🚫ロゴ）をクリック。
+2. ツールバーから本アイコンをクリック。
 3. トグルスイッチで「Shorts を非表示 / 表示」を切り替え。
 - ✅ ON → ショート動画が全て消えます
 - ❎ OFF → 「ショートを復元中...」が5秒表示されたあと再表示されます
