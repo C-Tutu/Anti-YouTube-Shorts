@@ -1,17 +1,14 @@
+// content_scripts/anti-shorts.js
 (() => {
   const STYLE_ID = 'anti-shorts-style';
   const OVERLAY_ID = 'anti-shorts-overlay';
   const HIDDEN_MARK = 'data-anti-shorts-hidden';
-  const DEBOUNCE_MS = 300;
-  const RETRY_INTERVAL = 500;
+  const DEBOUNCE_MS = 200;
+  const STYLE_REAPPLY_INTERVAL = 2000;
+  const INITIAL_SCAN_RETRY = 5;
+  const SCAN_INTERVAL = 300;
+  const RESTORE_DELAY = 4000; // ローディング演出時間(ミリ秒)
 
-  let observer = null;
-  let debounceTimer = null;
-  let styleInserted = false;
-  let locked = false;
-  let processed = new WeakSet();
-
-  // --- 非表示対象セレクタ ---
   const STYLE_SELECTORS = [
     'a[href^="/shorts/"]',
     'a[href*="/shorts/"]',
@@ -27,67 +24,54 @@
     'ytd-rich-shelf-renderer',
     'ytd-mini-guide-entry-renderer[aria-label*="ショート"]',
     '#endpoint[title="ショート"]',
-    'tp-yt-paper-item[title="ショート"]'
+    'tp-yt-paper-item[title="ショート"]',
+    'yt-tab-shape[tab-title="ショート"]'
   ];
 
-  const waitForBody = (timeout = 5000) =>
-    new Promise(resolve => {
-      if (document.body) return resolve(true);
-      const t = setTimeout(() => resolve(false), timeout);
-      const mo = new MutationObserver(() => {
-        if (document.body) {
-          mo.disconnect();
-          clearTimeout(t);
-          resolve(true);
-        }
-      });
-      mo.observe(document.documentElement, { childList: true, subtree: true });
-    });
+  let isEnabled = false;
+  let observer = null;
+  let debounceTimer = null;
+  let styleTimer = null;
+  let processed = new WeakSet();
 
-  const insertBaseStyle = () => {
-    if (styleInserted) return;
+  // ========== Style Control ==========
+  const injectStyle = () => {
+    if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement('style');
     style.id = STYLE_ID;
-    style.textContent = [
-      ...STYLE_SELECTORS.map(s => `${s} { display: none !important; }`),
-      `[${HIDDEN_MARK}="1"] { display: none !important; }`
-    ].join('\n');
-    (document.head || document.documentElement).appendChild(style);
-    styleInserted = true;
+    style.textContent = `
+      ${STYLE_SELECTORS.map(s => `${s}{display:none!important;visibility:hidden!important;}`).join('\n')}
+      [${HIDDEN_MARK}="1"]{display:none!important;visibility:hidden!important;}
+    `;
+    document.documentElement.appendChild(style);
   };
 
-  const removeBaseStyle = () => {
-    const el = document.getElementById(STYLE_ID);
-    if (el) el.remove();
-    styleInserted = false;
+  const removeStyle = () => {
+    const style = document.getElementById(STYLE_ID);
+    if (style) style.remove();
   };
 
-  // --- ブロック単位でのショート検出 ---
+  // ========== Hide Logic ==========
   const hideShortBlocks = () => {
-    const blocks = document.querySelectorAll(
-      'grid-shelf-view-model, ytd-item-section-renderer, ytd-grid-shelf-renderer, ytd-rich-shelf-renderer'
-    );
+    const blocks = document.querySelectorAll('grid-shelf-view-model, ytd-item-section-renderer, ytd-grid-shelf-renderer, ytd-rich-shelf-renderer');
     for (const block of blocks) {
       if (processed.has(block)) continue;
       const title = block.querySelector('.yt-shelf-header-layout__title, h2, .yt-core-attributed-string');
-      if (title && /ショート|Shorts/i.test(title.innerText)) {
+      if (title && /ショート|shorts/i.test(title.textContent)) {
         block.setAttribute(HIDDEN_MARK, '1');
         processed.add(block);
       }
     }
   };
 
-  // --- タイトルやリンクからショートを検出 ---
   const hideByTextScan = () => {
     const els = document.querySelectorAll('#video-title, a.yt-simple-endpoint, yt-formatted-string');
     for (const el of els) {
       if (processed.has(el)) continue;
-      const text = (el.innerText || '').toLowerCase();
-      if (text && (text.includes('#shorts') || text.includes('shorts') || text.includes('ショート'))) {
-        const parent = el.closest(
-          'ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, ytd-rich-item-renderer'
-        );
-        if (parent && !processed.has(parent)) {
+      const txt = (el.textContent || '').toLowerCase();
+      if (txt.includes('#shorts') || txt.includes('shorts') || txt.includes('ショート')) {
+        const parent = el.closest('ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, ytd-rich-item-renderer');
+        if (parent) {
           parent.setAttribute(HIDDEN_MARK, '1');
           processed.add(parent);
         }
@@ -95,109 +79,156 @@
     }
   };
 
-  // --- タグ領域からショートカテゴリを除去 ---
   const hideShortTags = () => {
     const tags = document.querySelectorAll('yt-chip-cloud-chip-renderer, #chip-shape-container');
     for (const tag of tags) {
       if (processed.has(tag)) continue;
-      const text = (tag.innerText || '').trim();
-      // 「ショート」完全一致のみを非表示
-      if (/^ショート$/i.test(text)) {
+      const txt = (tag.textContent || '').trim();
+      if (/^ショート$/i.test(txt)) {
         tag.setAttribute(HIDDEN_MARK, '1');
         processed.add(tag);
       }
     }
   };
 
-  const runHideCycle = async () => {
-    if (locked) return;
-    locked = true;
-    insertBaseStyle();
-    await Promise.resolve();
+  const hideShortTabs = () => {
+    const tabs = document.querySelectorAll('yt-tab-shape');
+    for (const tab of tabs) {
+      if (processed.has(tab)) continue;
+      const title = tab.getAttribute('tab-title') || tab.textContent || '';
+      if (/ショート/i.test(title.trim())) {
+        tab.setAttribute(HIDDEN_MARK, '1');
+        processed.add(tab);
+      }
+    }
+  };
+
+  const runHideCycle = () => {
+    if (!isEnabled) return;
     hideShortBlocks();
     hideByTextScan();
     hideShortTags();
-    requestAnimationFrame(() => {
-      locked = false;
-    });
+    hideShortTabs();
   };
 
+  // ========== Observer ==========
   const startObserver = () => {
     if (observer) observer.disconnect();
-    const target = document.body || document.documentElement;
-    if (!target) {
-      setTimeout(startObserver, RETRY_INTERVAL);
-      return;
-    }
     observer = new MutationObserver(() => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(runHideCycle, DEBOUNCE_MS);
     });
-    observer.observe(target, { childList: true, subtree: true });
-    runHideCycle();
+    observer.observe(document.documentElement, { childList: true, subtree: true });
   };
 
   const stopObserver = () => {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-    removeBaseStyle();
-    processed = new WeakSet();
-    document.querySelectorAll(`[${HIDDEN_MARK}="1"]`).forEach(el => el.removeAttribute(HIDDEN_MARK));
+    if (observer) observer.disconnect();
+    observer = null;
   };
 
+  // ========== Overlay (復元演出) ==========
   const showOverlayThenRestore = () => {
     if (document.getElementById(OVERLAY_ID)) return;
     const ov = document.createElement('div');
     ov.id = OVERLAY_ID;
     ov.innerHTML = `
       <div class="panel">
-        <div style="margin-bottom:12px;font-size:18px;color:#ffcccc">ショートを復元中...</div>
-        <div style="font-size:12px;opacity:0.95">5秒お待ちください</div>
+        <div class="loader"></div>
+        <p>ショートを復元中です...</p>
       </div>`;
     Object.assign(ov.style, {
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(18px)', backgroundColor: 'rgba(0,0,0,0.85)',
-      zIndex: 2147483647, transition: 'opacity .4s', pointerEvents: 'all'
+      position: 'fixed',
+      top: 0, left: 0,
+      width: '100%', height: '100%',
+      background: 'rgba(0,0,0,0.75)',
+      backdropFilter: 'blur(10px)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 99999,
+      transition: 'opacity 0.6s ease',
+      opacity: 1
     });
+
+    const loader = ov.querySelector('.loader');
+    Object.assign(loader.style, {
+      width: '40px',
+      height: '40px',
+      border: '3px solid #fff',
+      borderTop: '3px solid transparent',
+      borderRadius: '50%',
+      margin: '0 auto 10px',
+      animation: 'spin 1s linear infinite'
+    });
+
     const panel = ov.querySelector('.panel');
-    Object.assign(panel.style, {
-      padding: '22px 36px', borderRadius: '16px', background: 'rgba(10,10,10,0.9)',
-      color: '#fff', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.7)'
-    });
+    panel.style.cssText = 'color:white;font-size:16px;text-align:center;animation:pulse 1s infinite;';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {from{transform:rotate(0)}to{transform:rotate(360deg)}}
+      @keyframes pulse {0%{opacity:0.8}50%{opacity:1}100%{opacity:0.8}}
+    `;
+    document.head.appendChild(style);
     document.body.appendChild(ov);
-    locked = true;
+
+    // 一旦完全停止してローディング表示
+    stopObserver();
+    removeStyle();
+    isEnabled = false;
+
+    // 復元演出が終わったあとに完全復元
     setTimeout(() => {
-      stopObserver();
       ov.style.opacity = '0';
-      setTimeout(() => {
+      ov.addEventListener('transitionend', () => {
         ov.remove();
-        locked = false;
-        chrome.storage.sync.set({ enabled: false });
-      }, 420);
-    }, 5000);
+        processed = new WeakSet();
+      }, { once: true });
+    }, RESTORE_DELAY);
   };
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  // ========== Enable / Disable ==========
+  const enable = () => {
+    if (isEnabled) return;
+    isEnabled = true;
+    injectStyle();
+    startObserver();
+    runHideCycle();
+
+    let retry = 0;
+    const retryInterval = setInterval(() => {
+      if (!isEnabled || retry++ >= INITIAL_SCAN_RETRY) clearInterval(retryInterval);
+      runHideCycle();
+    }, SCAN_INTERVAL);
+
+    styleTimer = setInterval(() => {
+      if (isEnabled && !document.getElementById(STYLE_ID)) injectStyle();
+    }, STYLE_REAPPLY_INTERVAL);
+  };
+
+  const disable = () => {
+    if (!isEnabled) return;
+    showOverlayThenRestore();
+  };
+
+  // ========== Navigation & Events ==========
+  const handleNav = () => {
+    if (!isEnabled) return;
+    injectStyle();
+    runHideCycle();
+  };
+  ['yt-navigate-start','yt-navigate-finish','popstate','pageshow','DOMContentLoaded']
+    .forEach(e=>window.addEventListener(e,handleNav,{passive:true}));
+
+  // ========== Messaging & Storage ==========
+  chrome.runtime.onMessage.addListener(msg => {
     if (!msg || !msg.action) return;
-    if (msg.action === 'enable') {
-      waitForBody().then(ok => ok ? startObserver() : setTimeout(startObserver, RETRY_INTERVAL));
-    } else if (msg.action === 'disable') {
-      if (msg.userInitiated && location.hostname.includes('youtube.com')) {
-        showOverlayThenRestore();
-      } else {
-        stopObserver();
-      }
-    }
+    if (msg.action === 'enable') enable();
+    if (msg.action === 'disable') disable();
   });
 
-  chrome.storage.sync.get({ enabled: false }, (res) => {
-    if (res.enabled) {
-      waitForBody().then(ok => ok ? startObserver() : setTimeout(startObserver, RETRY_INTERVAL));
-    } else {
-      stopObserver();
-    }
+  chrome.storage.sync.get({ enabled: false }, res => {
+    if (res.enabled) enable();
   });
+
 })();
