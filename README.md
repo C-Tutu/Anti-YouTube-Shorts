@@ -7,7 +7,7 @@
 **YouTube のショート動画を非表示にして、あなたの大切な時間を守ります。**  
 “つい見ちゃう”を卒業し、より穏やかなネット体験を。
 
-![GitHub last commit](https://img.shields.io/github/last-commit/yourname/anti-youtube-shorts?color=brightgreen)
+![GitHub last commit](https://img.shields.io/github/last-commit/C-Tutu/anti-youtube-shorts?color=brightgreen)
 ![Version](https://img.shields.io/badge/version-2.0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
