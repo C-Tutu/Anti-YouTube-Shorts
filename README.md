@@ -53,7 +53,7 @@ Chrome拡張機能です。検索結果やサイドバー、タグ領域に現�
 ### ⚙️ 2. 拡張機能を読み込む
 
 1. Chrome アドレスバーに以下を入力し開く：
-[```chrome://extensions/```](chrome://extensions/)
+```chrome://extensions/```
 2. 右上の「デベロッパーモード」を ON にする。
 3. 「パッケージ化されていない拡張機能を読み込む」をクリック。
 4. 展開したフォルダ（例：anti-youtube-shorts-main/）を選択。
