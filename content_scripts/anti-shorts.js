@@ -3,6 +3,7 @@
   // ===== 定数の定義 =====
   const STYLE_ID = 'anti-shorts-style'; // 挿入するCSSスタイル要素のID
   const OVERLAY_ID = 'anti-shorts-overlay'; // 復元中に表示するオーバーレイのID
+  const OPEN_OVERLAY_ID='shorts-open-overlay'//ショートを開いたときに表示するオーバーレイのID
   const HIDDEN_MARK = 'data-anti-shorts-hidden'; // 非表示にした要素を識別するための属性
   const DEBOUNCE_MS = 200; // MutationObserver発火の間引き時間(ms)
   const STYLE_REAPPLY_INTERVAL = 2000; // スタイルが消えた場合に再適用する間隔(ms)
@@ -119,7 +120,8 @@
       url=window.location.href //URLを取得
       url_token=url.split("/")
       if (url_token[3]=="shorts"){
-        console.log("ショートですよ")
+        document.body.innerHTML = "<h1>書き換え完了！</h1>";
+        
       }
       // console.log(url_token)
   }
