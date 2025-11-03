@@ -36,6 +36,7 @@
   let debounceTimer = null; // 変更検知のデバウンス用タイマー
   let styleTimer = null; // スタイル再適用タイマー
   let processed = new WeakSet(); // 処理済み要素の記録
+  let url=window.location.href //URLを取得
 
   // ===== スタイル関連処理 =====
   const injectStyle = () => {
@@ -114,6 +115,16 @@
     }
   };
 
+  const shortopenblock=()=>{
+      url=window.location.href //URLを取得
+      url_token=url.split("/")
+      if (url_token[3]=="shorts"){
+        console.log("ショートですよ")
+      }
+      // console.log(url_token)
+  }
+
+
   const runHideCycle = () => {
     // 各非表示処理を順番に実行
     if (!isEnabled) return;
@@ -121,6 +132,7 @@
     hideByTextScan();
     hideShortTags();
     hideShortTabs();
+    shortopenblock();
   };
 
   // ===== DOM監視処理 =====
