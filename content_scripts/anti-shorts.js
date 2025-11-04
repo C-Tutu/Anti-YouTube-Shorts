@@ -3,12 +3,14 @@
   // ===== 定数の定義 =====
   const STYLE_ID = 'anti-shorts-style'; // 挿入するCSSスタイル要素のID
   const OVERLAY_ID = 'anti-shorts-overlay'; // 復元中に表示するオーバーレイのID
+  const OPEN_ID='open-short-embed'; //ショートを開いたときに表示するページのID
   const HIDDEN_MARK = 'data-anti-shorts-hidden'; // 非表示にした要素を識別するための属性
   const DEBOUNCE_MS = 200; // MutationObserver発火の間引き時間(ms)
   const STYLE_REAPPLY_INTERVAL = 2000; // スタイルが消えた場合に再適用する間隔(ms)
   const INITIAL_SCAN_RETRY = 5; // 初回スキャンの再試行回数
   const SCAN_INTERVAL = 300; // スキャン間隔(ms)
   const RESTORE_DELAY = 4000; // 復元演出の継続時間(ms)
+  const OPEN_PAGE=chrome.runtime.getURL('../assets/shorts_open/open.html');
 
   // YouTube Shorts関連要素を特定するCSSセレクタ一覧
   const STYLE_SELECTORS = [
@@ -118,12 +120,26 @@
   const shortopenblock=()=>{
       url=window.location.href //URLを取得
       url_token=url.split("/")
-      if (url_token[3]=="shorts"){
-        document.body.innerHTML = `
-          <h1>このページはショート動画です</h1>
-          <h1>Anti-shortsによって無効化されていています</h1>
-        `;
+      if (url_token[3]=="shorts"){          
+        if (document.getElementById(OPEN_ID)) return;
+         window.location.href = OPEN_PAGE;
+        /*
+        var url = OPEN_PAGE;
+      fetch(url)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (html) {
+          document.body.innerHTML = html;
+        })
+        .catch(function (err) {
+          console.error("書き換え失敗:", err);
+        });
         
+        document.getElementById(OPEN_ID).innerHTML='<iframe src="https://www.youtube.com/embed/'+url_token[4]+'"></iframe>'
+        console.log(url_token)
+        console.log(OPEN_PAGE)
+        */
       }
       // console.log(url_token)
   }
