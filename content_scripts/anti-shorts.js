@@ -122,26 +122,8 @@
       url_token=url.split("/")
       if (url_token[3]=="shorts"){          
         if (document.getElementById(OPEN_ID)) return;
-         window.location.href = OPEN_PAGE;
-        /*
-        var url = OPEN_PAGE;
-      fetch(url)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (html) {
-          document.body.innerHTML = html;
-        })
-        .catch(function (err) {
-          console.error("書き換え失敗:", err);
-        });
-        
-        document.getElementById(OPEN_ID).innerHTML='<iframe src="https://www.youtube.com/embed/'+url_token[4]+'"></iframe>'
-        console.log(url_token)
-        console.log(OPEN_PAGE)
-        */
+        window.location.href = OPEN_PAGE + "?short_id=" + url_token[4];
       }
-      // console.log(url_token)
   }
 
 
