@@ -8,7 +8,7 @@
 “つい見ちゃう”を卒業し、より穏やかなネット体験を。
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/C-Tutu/anti-youtube-shorts?color=brightgreen)
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 </div>
@@ -60,7 +60,7 @@ Chrome拡張機能です。検索結果やサイドバー、タグ領域に現�
 
 ### 🎛️ 3. 動作確認
 
-1. YouTube を開く。
+1. [YouTube](https://www.youtube.com/) を開く。
 2. ツールバーから本アイコンをクリック。
 3. トグルスイッチで「Shorts を非表示 / 表示」を切り替え。
 - ✅ ON → ショート動画が全て消えます
