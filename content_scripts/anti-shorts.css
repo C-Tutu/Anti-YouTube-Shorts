@@ -1,3 +1,17 @@
+@font-face {
+	font-family: 'BebasNeue';
+	src: url('chrome-extension://__MSG_@@extension_id__/assets/font/BebasNeue-Regular.ttf')
+		format('truetype');
+}
+
+:root {
+	--anti-shorts-bg: #0b0b0b;
+	--anti-shorts-card: #111;
+	--anti-shorts-accent: #ff0000;
+	--anti-shorts-muted: #bbb;
+	--anti-shorts-text: #fff;
+}
+
 #anti-shorts-overlay {
 	position: fixed;
 	inset: 0;
@@ -6,16 +20,126 @@
 	align-items: center;
 	justify-content: center;
 	pointer-events: auto;
-	background: rgba(0, 0, 0, 0.6);
+	background: rgba(0, 0, 0, 0.85);
 	backdrop-filter: blur(12px) saturate(120%);
+	font-family: Inter, 'BebasNeue', sans-serif;
 }
+
 #anti-shorts-overlay .panel {
-	background: rgba(10, 10, 10, 0.75);
-	color: #fff;
-	padding: 18px 22px;
+	background: linear-gradient(180deg, rgba(17, 17, 17, 0.95), rgba(11, 11, 11, 0.95));
+	color: var(--anti-shorts-text);
+	padding: 24px 28px;
 	border-radius: 12px;
-	border: 1px solid rgba(255, 0, 0, 0.4);
-	text-align: center;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+	border: 1.5px solid rgba(255, 68, 68, 0.6);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 6px 18px rgba(255, 0, 0, 0.06);
+	max-width: 650px;
+	width: 90%;
+}
+
+#anti-shorts-overlay .header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	border-bottom: 2px solid var(--anti-shorts-accent);
+	padding-bottom: 12px;
+	margin-bottom: 16px;
+}
+
+#anti-shorts-overlay .logo {
+	width: 34px;
+	height: 34px;
+	border-radius: 6px;
+}
+
+#anti-shorts-overlay .title {
 	font-family: 'BebasNeue', sans-serif;
+	font-size: 18px;
+	color: var(--anti-shorts-accent);
+	margin: 0;
+}
+
+#anti-shorts-overlay .main {
+	margin: 0;
+}
+
+#anti-shorts-overlay .label h1 {
+	font-size: 20px;
+	margin: 0 0 12px 0;
+	color: var(--anti-shorts-text);
+}
+
+#anti-shorts-overlay .video-info {
+	margin: 15px 0;
+	padding: 0;
+	background: transparent;
+}
+
+#anti-shorts-overlay .video-stats {
+	display: flex;
+	justify-content: center;
+	gap: 20px;
+	color: #aaa;
+	font-size: 16px;
+	margin-bottom: 15px;
+}
+
+#anti-shorts-overlay .thumbnail-link {
+	display: block;
+	position: relative;
+	margin: 20px auto;
+	max-width: 600px;
+	border-radius: 10px;
+	overflow: hidden;
+	transition: transform 0.2s ease;
+	text-decoration: none;
+}
+
+#anti-shorts-overlay .thumbnail-link:hover {
+	transform: scale(1.02);
+}
+
+#anti-shorts-overlay .video-thumbnail {
+	width: 100%;
+	display: block;
+	cursor: pointer;
+}
+
+#anti-shorts-overlay .play-button-overlay {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background: rgba(0, 0, 0, 0.7);
+	border-radius: 50%;
+	width: 68px;
+	height: 48px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	transition: background 0.2s ease;
+}
+
+#anti-shorts-overlay .thumbnail-link:hover .play-button-overlay {
+	background: rgba(255, 0, 0, 0.9);
+}
+
+#anti-shorts-overlay .watch-instruction {
+	text-align: center;
+	color: #aaa;
+	font-size: 14px;
+	margin: 10px 0;
+}
+
+#anti-shorts-overlay .youtube-link {
+	display: inline-block;
+	color: var(--anti-shorts-muted);
+	text-decoration: none;
+	font-size: 12px;
+	margin-top: 12px;
+	transition: color 0.2s ease;
+}
+
+#anti-shorts-overlay .youtube-link:hover {
+	color: var(--anti-shorts-accent);
 }
