@@ -8,7 +8,7 @@
 “つい見ちゃう”を卒業し、より穏やかなネット体験を。
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/C-Tutu/anti-youtube-shorts?color=brightgreen)
-![Version](https://img.shields.io/badge/version-2.1.0.1-blue)
+![Version](https://img.shields.io/badge/version-2.1.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 </div>
@@ -17,12 +17,12 @@
 
 ## 🧩 概要
 
-**Anti YouTube Shorts**は、YouTube上に表示されるショート動画（Shorts）を自動的に非表示にする
-Chrome拡張機能です。検索結果やサイドバー、タグ領域に現れるショートまで、すべてをまとめて非表示にし、
+**Anti YouTube Shorts**は、YouTube 上に表示されるショート動画（Shorts）を自動的に非表示にする
+Chrome 拡張機能です。検索結果やサイドバー、タグ領域に現れるショートまで、すべてをまとめて非表示にし、
 あなたの大切な時間を守ります。
 
 一時的にオフにすると、グラスモーフィズム風の**復元ローディング**が表示され、
-5秒後にショートが再び表示されます。
+5 秒後にショートが再び表示されます。
 
 ---
 
@@ -53,7 +53,7 @@ Chrome拡張機能です。検索結果やサイドバー、タグ領域に現�
 ### ⚙️ 2. 拡張機能を読み込む
 
 1. Chrome アドレスバーに以下を入力し開く：
-```chrome://extensions/```
+   `chrome://extensions/`
 2. 右上の「デベロッパーモード」を ON にする。
 3. 「パッケージ化されていない拡張機能を読み込む」をクリック。
 4. 展開したフォルダ（例：anti-youtube-shorts-main/）を選択。
@@ -63,18 +63,22 @@ Chrome拡張機能です。検索結果やサイドバー、タグ領域に現�
 1. [YouTube](https://www.youtube.com/) を開く。
 2. ツールバーから本アイコンをクリック。
 3. トグルスイッチで「Shorts を非表示 / 表示」を切り替え。
-- ✅ ON → ショート動画が全て消えます
-- ❎ OFF → 「ショートを復元中...」が5秒表示されたあと再表示されます
+
+-   ✅ ON → ショート動画が全て消えます
+-   ❎ OFF → 「ショートを復元中...」が 5 秒表示されたあと再表示されます
 
 ### 💬 よくある質問
 
 #### Q. Shorts が消えないページがあります。
+
 → YouTube 側の DOM 構造が変わった可能性があります。拡張機能を一度 OFF→ON にして再試行してください。
 
 #### Q. スタイルが崩れます。
+
 → 他の YouTube 関連拡張と競合している場合があります。「Anti YouTube Shorts」を優先的に動作させてください。
 
 ### 📜 ライセンス
+
 このプロジェクトは MIT License
- のもとで公開されています。
+のもとで公開されています。
 商用・個人利用・改変すべて自由です。
