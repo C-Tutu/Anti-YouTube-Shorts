@@ -8,7 +8,7 @@
 “つい見ちゃう”を卒業し、より穏やかなネット体験を。
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/C-Tutu/anti-youtube-shorts?color=brightgreen)
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 </div>
