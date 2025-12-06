@@ -16,17 +16,17 @@
 
 	// YouTube Shorts関連要素を特定するCSSセレクタ一覧
 	const STYLE_SELECTORS = [
-		'a[href^="/shorts/"]',
-		'a[href*="/shorts/"]',
-		'ytd-reel-shelf-renderer',
-		'ytd-reel-video-renderer',
-		'ytm-shorts-lockup-view-model',
-		'ytm-shorts-lockup-view-model-v2',
-		'ytd-horizontal-card-list-renderer:has(a[href^="/shorts"])',
-		'ytd-mini-guide-entry-renderer[aria-label*="ショート"]',
-		'#endpoint[title="ショート"]',
-		'tp-yt-paper-item[title="ショート"]',
-		'yt-tab-shape[tab-title="ショート"]',
+		'a[href^="/shorts/"]', // URLが/shorts/で始まるリンク（標準的なショート動画リンク）
+		'a[href*="/shorts/"]', // URLに/shorts/を含むリンク
+		'ytd-reel-shelf-renderer', // ホーム画面などのショート動画棚（PC版）
+		'ytd-reel-video-renderer', // ショート動画プレーヤー本体
+		'ytm-shorts-lockup-view-model', // ショート動画のUIコンポーネント（モバイル/新デザイン）
+		'ytm-shorts-lockup-view-model-v2', // 上記のv2
+		'ytd-horizontal-card-list-renderer:has(a[href^="/shorts"])', // ショート動画リンクを含む横スクロールリスト
+		'ytd-mini-guide-entry-renderer[aria-label*="ショート"]', // ミニガイド（左側細いメニュー）のショートボタン
+		'#endpoint[title="ショート"]', // サイドバーメニューのショートボタン
+		'tp-yt-paper-item[title="ショート"]', // メニュー内のショート項目
+		'yt-tab-shape[tab-title="ショート"]', // チャンネルページなどのショートタブ
 	];
 
 	// ===== 内部状態変数 =====
@@ -57,8 +57,10 @@
 
 	// ===== 非表示処理ロジック =====
 	const hideShortBlocks = () => {
+		//ここにあったytd-item-section-rendererを削除すると、履歴がおかしくなるバグ(https://github.com/C-Tutu/Anti-YouTube-Shorts/issues/4)を解消した。
+		//なんかおかしくなったらここにあるかも
 		const blocks = document.querySelectorAll(
-			'grid-shelf-view-model, ytd-item-section-renderer, ytd-grid-shelf-renderer, ytd-rich-shelf-renderer, ytd-rich-section-renderer'
+			'grid-shelf-view-model,  ytd-grid-shelf-renderer, ytd-rich-shelf-renderer, ytd-rich-section-renderer'
 		);
 		for (const block of blocks) {
 			if (processed.has(block)) continue;
