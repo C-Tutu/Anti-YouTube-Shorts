@@ -1,17 +1,47 @@
+/**
+ * Anti YouTube Shorts v3.0.0 - Content Styles
+ * ブロックオーバーレイ用スタイル（最適化済み）
+ */
+
 @font-face {
 	font-family: 'BebasNeue';
 	src: url('chrome-extension://__MSG_@@extension_id__/assets/font/BebasNeue-Regular.ttf')
 		format('truetype');
+	font-display: swap;
 }
 
 :root {
 	--anti-shorts-bg: #0b0b0b;
 	--anti-shorts-card: #111;
 	--anti-shorts-accent: #ff0000;
-	--anti-shorts-muted: #bbb;
+	--anti-shorts-muted: #999;
 	--anti-shorts-text: #fff;
+	--anti-shorts-border: rgba(255, 68, 68, 0.5);
 }
 
+/* =====================================================
+   ★★★ INSTANT BLOCK: Shortsページ用即時ブロック ★★★
+   CSSレベルで動画を即座に非表示にし、音漏れを防ぐ
+   JSが起動する前に効果を発揮する
+   
+   重要: [page-subtype="shorts"] でスコープを限定し、
+   通常の動画ページに影響を与えないようにする
+   ===================================================== */
+
+/* Shortsページ専用: ビデオ要素を即座に隠す */
+/* YouTubeは page-subtype を ytd-app 要素に設定 */
+ytd-app[page-subtype='shorts'] video {
+	visibility: hidden !important;
+	opacity: 0 !important;
+}
+
+/* Shortsページ専用: 背景を黒にしてちらつき防止 */
+ytd-app[page-subtype='shorts'] ytd-shorts,
+ytd-app[page-subtype='shorts'] #shorts-container {
+	background: #000 !important;
+}
+
+/* ブロックオーバーレイ */
 #anti-shorts-overlay {
 	position: fixed;
 	inset: 0;
@@ -19,89 +49,90 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	pointer-events: auto;
-	background: rgba(0, 0, 0, 0.85);
-	backdrop-filter: blur(12px) saturate(120%);
-	font-family: Inter, 'BebasNeue', sans-serif;
+	background: rgba(0, 0, 0, 0.9);
+	backdrop-filter: blur(16px) saturate(120%);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 #anti-shorts-overlay .panel {
-	background: linear-gradient(180deg, rgba(17, 17, 17, 0.95), rgba(11, 11, 11, 0.95));
+	background: linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(10, 10, 10, 0.98));
 	color: var(--anti-shorts-text);
 	padding: 24px 28px;
-	border-radius: 12px;
-	border: 1.5px solid rgba(255, 68, 68, 0.6);
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 6px 18px rgba(255, 0, 0, 0.06);
-	max-width: 650px;
+	border-radius: 14px;
+	border: 1.5px solid var(--anti-shorts-border);
+	box-shadow:
+		0 12px 40px rgba(0, 0, 0, 0.8),
+		0 0 60px rgba(255, 0, 0, 0.08);
+	max-width: 600px;
 	width: 90%;
 }
 
 #anti-shorts-overlay .header {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 	border-bottom: 2px solid var(--anti-shorts-accent);
-	padding-bottom: 12px;
-	margin-bottom: 16px;
+	padding-bottom: 14px;
+	margin-bottom: 18px;
 }
 
 #anti-shorts-overlay .logo {
-	width: 34px;
-	height: 34px;
-	border-radius: 6px;
+	width: 36px;
+	height: 36px;
+	border-radius: 8px;
 }
 
 #anti-shorts-overlay .title {
 	font-family: 'BebasNeue', sans-serif;
-	font-size: 18px;
+	font-size: 20px;
 	color: var(--anti-shorts-accent);
 	margin: 0;
-}
-
-#anti-shorts-overlay .main {
-	margin: 0;
+	letter-spacing: 1px;
 }
 
 #anti-shorts-overlay .label h1 {
-	font-size: 20px;
-	margin: 0 0 12px 0;
-	color: var(--anti-shorts-text);
+	font-size: 18px;
+	font-weight: 600;
+	margin: 0 0 16px 0;
+	line-height: 1.4;
 }
 
 #anti-shorts-overlay .video-info {
-	margin: 15px 0;
-	padding: 0;
-	background: transparent;
+	margin: 12px 0;
 }
 
 #anti-shorts-overlay .video-stats {
 	display: flex;
 	justify-content: center;
-	gap: 20px;
-	color: #aaa;
-	font-size: 16px;
-	margin-bottom: 15px;
+	gap: 16px;
+	color: var(--anti-shorts-muted);
+	font-size: 14px;
 }
 
 #anti-shorts-overlay .thumbnail-link {
 	display: block;
 	position: relative;
 	margin: 20px auto;
-	max-width: 600px;
-	border-radius: 10px;
+	max-width: 540px;
+	border-radius: 12px;
 	overflow: hidden;
-	transition: transform 0.2s ease;
 	text-decoration: none;
+	transition:
+		transform 0.2s ease,
+		box-shadow 0.2s ease;
 }
 
 #anti-shorts-overlay .thumbnail-link:hover {
 	transform: scale(1.02);
+	box-shadow: 0 8px 32px rgba(255, 0, 0, 0.2);
 }
 
 #anti-shorts-overlay .video-thumbnail {
 	width: 100%;
 	display: block;
-	cursor: pointer;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	background: #222;
 }
 
 #anti-shorts-overlay .play-button-overlay {
@@ -109,26 +140,25 @@
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	background: rgba(0, 0, 0, 0.7);
-	border-radius: 50%;
 	width: 68px;
 	height: 48px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
 	pointer-events: none;
-	transition: background 0.2s ease;
+	opacity: 0.9;
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
 }
 
 #anti-shorts-overlay .thumbnail-link:hover .play-button-overlay {
-	background: rgba(255, 0, 0, 0.9);
+	opacity: 1;
+	transform: translate(-50%, -50%) scale(1.1);
 }
 
 #anti-shorts-overlay .watch-instruction {
 	text-align: center;
-	color: #aaa;
-	font-size: 14px;
-	margin: 10px 0;
+	color: var(--anti-shorts-muted);
+	font-size: 13px;
+	margin: 12px 0;
 }
 
 #anti-shorts-overlay .youtube-link {
@@ -136,10 +166,14 @@
 	color: var(--anti-shorts-muted);
 	text-decoration: none;
 	font-size: 12px;
-	margin-top: 12px;
-	transition: color 0.2s ease;
+	padding: 8px 16px;
+	border: 1px solid var(--anti-shorts-border);
+	border-radius: 6px;
+	transition: all 0.2s ease;
 }
 
 #anti-shorts-overlay .youtube-link:hover {
-	color: var(--anti-shorts-accent);
+	color: var(--anti-shorts-text);
+	border-color: var(--anti-shorts-accent);
+	background: rgba(255, 0, 0, 0.1);
 }
