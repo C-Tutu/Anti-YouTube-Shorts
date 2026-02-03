@@ -41,7 +41,6 @@
 	const BLOCK_CONTAINER_SELECTORS = Object.freeze([
 		'ytd-rich-shelf-renderer',
 		'ytd-rich-section-renderer',
-		'ytd-item-section-renderer',
 		'ytd-grid-shelf-renderer',
 	]);
 
