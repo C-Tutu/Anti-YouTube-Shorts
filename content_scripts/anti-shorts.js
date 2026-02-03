@@ -42,6 +42,7 @@
 		'ytd-rich-shelf-renderer',
 		'ytd-rich-section-renderer',
 		'ytd-grid-shelf-renderer',
+		'grid-shelf-view-model',
 	]);
 
 	// 個別動画アイテムセレクタ
@@ -50,6 +51,8 @@
 		'ytd-grid-video-renderer',
 		'ytd-compact-video-renderer',
 		'ytd-rich-item-renderer',
+		'ytm-shorts-lockup-view-model',
+		'ytm-shorts-lockup-view-model-v2',
 	]);
 
 	class AntiShortsManager {
