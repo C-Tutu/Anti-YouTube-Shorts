@@ -1,4 +1,4 @@
-// Anti YouTube Shorts v3.2.0
+// Anti YouTube Shorts v3.2.1
 (() => {
 	'use strict';
 	if (window.__antiShortsInitialized) return;
@@ -33,7 +33,10 @@
 		'ytd-rich-item-renderer',
 		'ytm-shorts-lockup-view-model',
 		'ytm-shorts-lockup-view-model-v2',
+		'ytd-reel-item-renderer',
 	];
+
+	const SEARCH_CLEANUP_SEL = ['yt-search-query-correction', 'ytd-hashtag-tile-renderer'];
 
 	class Manager {
 		static #i = null;
@@ -166,6 +169,7 @@
 				if (t && /^(ショート|shorts)$/i.test(t.textContent?.trim() || '')) {
 					c.setAttribute(HIDDEN_ATTR, '1');
 					this.#proc.add(c);
+					this.#checkEmptySection(c); // 親セクションの空チェック
 				}
 			});
 
@@ -175,6 +179,7 @@
 				if (el.querySelector('a[href^="/shorts/"],a[href*="/shorts/"]')) {
 					el.setAttribute(HIDDEN_ATTR, '1');
 					this.#proc.add(el);
+					this.#checkEmptySection(el); // 親セクションの空チェック
 				}
 			});
 
@@ -187,8 +192,18 @@
 				}
 			});
 
-			// 検索
+			// 検索結果ページのクリーンアップ
 			if (location.pathname.startsWith('/results')) {
+				// #shorts ハッシュタグや検索修正の非表示
+				const cleanupSel = SEARCH_CLEANUP_SEL.map((s) => s + nh).join(',');
+				document.querySelectorAll(cleanupSel).forEach((el) => {
+					if (/shorts/i.test(el.textContent || '')) {
+						el.setAttribute(HIDDEN_ATTR, '1');
+						this.#proc.add(el);
+					}
+				});
+
+				// 通常の検索結果内Shorts
 				[
 					'ytd-reel-shelf-renderer',
 					'ytd-horizontal-card-list-renderer:has(a[href^="/shorts/"])',
@@ -196,15 +211,59 @@
 					document.querySelectorAll(`${sel}${nh}`).forEach((el) => {
 						el.setAttribute(HIDDEN_ATTR, '1');
 						this.#proc.add(el);
+						this.#checkEmptySection(el);
 					});
 				});
+
 				document.querySelectorAll('a[href^="/shorts/"]').forEach((a) => {
 					const c = a.closest(ITEM_SEL.join(','));
 					if (c && c.getAttribute(HIDDEN_ATTR) !== '1') {
 						c.setAttribute(HIDDEN_ATTR, '1');
 						this.#proc.add(c);
+						this.#checkEmptySection(c);
 					}
 				});
+			}
+		}
+
+		/**
+		 * 要素を非表示にした結果、親のセクションが実質空になったかチェックし、
+		 * 空であれば親セクションごと非表示にする（区切り線や余白の除去）
+		 */
+		#checkEmptySection(el) {
+			const section = el.closest('ytd-item-section-renderer');
+			if (!section || section.getAttribute(HIDDEN_ATTR) === '1') return;
+
+			// セクション内の主要なコンテンツ要素を取得
+			// 注: ここにリストアップされていない要素（Adやメッセージなど）がある場合は非表示にしない安全設計
+			const contentSelector = [
+				...CONTAINER_SEL,
+				...ITEM_SEL,
+				'ytd-playlist-renderer',
+				'ytd-channel-renderer',
+				'ytd-shelf-renderer',
+			].join(',');
+
+			const children = section.querySelectorAll(contentSelector);
+			let allHidden = true;
+			let hasShorts = false;
+
+			for (const child of children) {
+				// childrenの中に自分自身(el)も含まれる可能性があるため、隠蔽属性をチェック
+				// まだ属性が付与されていないが、これから隠される要素も考慮が必要だが、
+				// 基本的に hidden 属性がついているかどうかで判定
+				if (child.getAttribute(HIDDEN_ATTR) === '1') {
+					hasShorts = true;
+				} else {
+					allHidden = false;
+					break;
+				}
+			}
+
+			// すべての主要コンテンツが非表示であれば、セクション全体を隠す
+			if (hasShorts && allHidden) {
+				section.setAttribute(HIDDEN_ATTR, '1');
+				this.#proc.add(section);
 			}
 		}
 
