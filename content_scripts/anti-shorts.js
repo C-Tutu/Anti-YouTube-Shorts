@@ -263,6 +263,7 @@
 				'ytd-playlist-renderer',
 				'ytd-channel-renderer',
 				'ytd-shelf-renderer',
+				'yt-lockup-view-model',
 			].join(',');
 
 			const children = section.querySelectorAll(contentSelector);
