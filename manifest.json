@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "Anti YouTube Shorts",
-	"version": "3.1.0",
+	"version": "3.2.0",
 	"description": "YouTubeのShortsを非表示にして、あなたの大切な時間を守る拡張機能",
 	"icons": {
 		"16": "assets/icons/icon16.png",
