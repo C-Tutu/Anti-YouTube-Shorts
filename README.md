@@ -8,7 +8,7 @@
 "つい見ちゃう"を卒業し、より穏やかなネット体験を。
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/C-Tutu/anti-youtube-shorts?color=brightgreen)
-![Version](https://img.shields.io/badge/version-3.0.0-blue)
+![Version](https://img.shields.io/badge/version-3.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 </div>
@@ -23,25 +23,22 @@
 
 ---
 
-## ✨ v3.0.0 新機能 (Major Update)
+## ✨ v3.1.0 更新内容 (Bug Fix Update)
 
-### ⚡ 超高速パフォーマンス & SPA完全対応
+### 🔧 バグ修正
 
-- **Singleton Pattern & WeakSet**: メモリリークを防止し、重複処理を徹底排除
-- **Smart Navigation Detection**: SPA特有のページ遷移を正確に検知し、遅延なくフィルターを適用
-- **Optimized Debounce**: 処理遅延を最小限(100ms)に短縮し、サクサク動作を実現
+| 問題                   | 修正内容                                                  |
+| ---------------------- | --------------------------------------------------------- |
+| **フル動画の誤非表示** | URL厳格判定（`/shorts/`リンク有無）でフル動画を正しく表示 |
+| **検索結果の表示バグ** | 検索ページ専用処理を強化、レイアウト崩れを軽減            |
+| **SPA遷移時の不具合**  | History APIフック追加、遅延再チェックで確実に適用         |
+| **イイネ数の取得失敗** | 最新のYouTube UI向けセレクタを追加                        |
 
-### 🎨 リッチなUI/UX体験
+### ⚡ パフォーマンス改善
 
-- **YouTube風リストアUI**: シークバーとロゴが連動する遊び心ある復元アニメーション(Playful Motion)
-- **Instant Block**: CSSとJSのハイブリッド制御で、読み込み瞬間のShorts再生/音漏れを完全阻止
-- **Modern Aesthetic**: グラスモーフィズムを取り入れた美しいダークモードデザイン
-
-### 🛠️ 信頼性の向上
-
-- **Smart Filtering**: サイドバーの「おすすめ動画」を誤って隠さない高精度なセレクタリング
-- **Deep Fetch**: DOMとソースコードの両面から「いいね数」を正確に取得
-- **Video Suppressor**: バックグラウンドでの不正な音声再生を強力に抑制
+- **最適化MutationObserver**: `#content`/`ytd-page-manager`のみ監視
+- **requestAnimationFrame**: DOM操作をメインスレッドから分離
+- **addedNodesフィルタ**: 不要なMutation処理をスキップ
 
 ---
 
@@ -102,13 +99,17 @@ YouTube の DOM 構造が変更された可能性があります。拡張機能�
 
 YouTube 関連の他の拡張機能と競合する場合があります。問題が発生した場合は、他の拡張機能を一時的に無効にしてお試しください。
 
+### Q. 検索結果のレイアウトが崩れます
+
+YouTubeの仮想スクロール実装の影響で、Shorts削除後に若干の空白が生じる場合があります。これは意図的な動作であり、ページ全体のパフォーマンスを維持するためのトレードオフです。
+
 ---
 
 ## 📁 ディレクトリ構成
 
 ```
 Anti-YouTube-Shorts/
-├── manifest.json          # 拡張機能の設定
+├── manifest.json          # 拡張機能の設定 (v3.1.0)
 ├── background.js          # Service Worker
 ├── content_scripts/
 │   ├── anti-shorts.js     # メイン処理（Singleton Pattern）
@@ -121,6 +122,24 @@ Anti-YouTube-Shorts/
     ├── icons/             # アイコン画像
     └── font/              # カスタムフォント
 ```
+
+---
+
+## 📜 更新履歴
+
+### v3.1.0 (2026-02-03)
+
+- 🔧 フル動画誤非表示バグ修正
+- 🔧 検索結果フィルタリング改善
+- 🔧 SPA遷移検知強化（History APIフック）
+- ⚡ MutationObserver最適化
+- ⚡ requestAnimationFrame導入
+
+### v3.0.0
+
+- 🎉 初回メジャーリリース
+- Singleton Pattern採用
+- YouTube風復元アニメーション実装
 
 ---
 

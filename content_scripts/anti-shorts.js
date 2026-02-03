@@ -1,5 +1,5 @@
 // content_scripts/anti-shorts.js
-// Anti YouTube Shorts v3.0.0 - 完全リファクタリング版
+// Anti YouTube Shorts v3.1.0 - Bug Fix Update
 // Singleton Pattern + 最適化MutationObserver + Strict Security + Video Suppressor
 (() => {
 	'use strict';
@@ -13,9 +13,10 @@
 		STYLE_ID: 'anti-shorts-style',
 		OVERLAY_ID: 'anti-shorts-overlay',
 		HIDDEN_ATTR: 'data-anti-shorts-hidden',
-		DEBOUNCE_MS: 100, // 100ms に短縮（レスポンス向上）
-		STYLE_CHECK_INTERVAL: 2000, // 2秒に短縮
+		DEBOUNCE_MS: 80, // 80msに短縮（レスポンス向上）
+		STYLE_CHECK_INTERVAL: 2000,
 		RESTORE_DELAY: 3500,
+		NAVIGATION_RECHECK_MS: 500, // ナビゲーション後の再確認遅延
 	});
 
 	// CSS非表示用セレクタ（安全なもののみ）
@@ -23,7 +24,6 @@
 	// Shortsの個別アイテムはJS処理で対応
 	const SHORTS_SELECTORS = Object.freeze([
 		'ytd-reel-shelf-renderer', // Shortsシェルフ全体
-		// 'ytd-reel-video-renderer' は除外（サイドバーに影響）
 		// ナビゲーション要素のみ
 		'ytd-mini-guide-entry-renderer[aria-label*="ショート"]',
 		'#endpoint[title="ショート"]',
@@ -31,16 +31,26 @@
 		'yt-tab-shape[tab-title="ショート"]',
 	]);
 
+	// 検索結果ページ専用セレクタ
 	const SEARCH_SHORTS_SELECTORS = Object.freeze([
 		'ytd-reel-shelf-renderer',
 		'ytd-horizontal-card-list-renderer:has(a[href^="/shorts/"])',
 	]);
 
+	// ブロック対象コンテナセレクタ
 	const BLOCK_CONTAINER_SELECTORS = Object.freeze([
 		'ytd-rich-shelf-renderer',
 		'ytd-rich-section-renderer',
 		'ytd-item-section-renderer',
 		'ytd-grid-shelf-renderer',
+	]);
+
+	// 個別動画アイテムセレクタ
+	const VIDEO_ITEM_SELECTORS = Object.freeze([
+		'ytd-video-renderer',
+		'ytd-grid-video-renderer',
+		'ytd-compact-video-renderer',
+		'ytd-rich-item-renderer',
 	]);
 
 	class AntiShortsManager {
@@ -52,6 +62,7 @@
 		#suppressorTimer = null;
 		#processedElements = new WeakSet();
 		#currentUrl = '';
+		#navigationRecheckTimer = null;
 
 		static getInstance() {
 			if (!AntiShortsManager.#instance) {
@@ -67,11 +78,12 @@
 		}
 
 		#setupEventListeners() {
-			// YouTube SPA ナビゲーションイベント
+			// YouTube SPA ナビゲーションイベント（全パターン対応）
 			const navigationEvents = [
 				'yt-navigate-start',
 				'yt-navigate-finish',
-				'yt-page-data-updated', // ページデータ更新時
+				'yt-page-data-updated',
+				'yt-page-data-fetched',
 				'popstate',
 				'pageshow',
 			];
@@ -79,14 +91,38 @@
 				window.addEventListener(event, () => this.#handleNavigation(), { passive: true });
 			});
 
+			// History API のオーバーライド（URLパラメータ変更検知）
+			this.#hookHistoryAPI();
+
 			// DOMContentLoaded
 			if (document.readyState === 'loading') {
 				document.addEventListener('DOMContentLoaded', () => this.#handleNavigation(), {
 					once: true,
 				});
 			}
-			// 注: コンストラクタ時点では #enabled=false のため、
-			// #handleNavigation は #loadInitialState 完了後に自動発火する
+
+			// visibilitychange: タブがアクティブになった時
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'visible' && this.#enabled) {
+					this.#handleNavigation();
+				}
+			});
+		}
+
+		#hookHistoryAPI() {
+			// pushState/replaceStateをフックして検索パラメータ変更を検知
+			const originalPushState = history.pushState.bind(history);
+			const originalReplaceState = history.replaceState.bind(history);
+
+			history.pushState = (...args) => {
+				originalPushState(...args);
+				this.#handleNavigation();
+			};
+
+			history.replaceState = (...args) => {
+				originalReplaceState(...args);
+				this.#handleNavigation();
+			};
 		}
 
 		#setupMessageListener() {
@@ -95,7 +131,7 @@
 				if (message.action === 'enable') this.enable();
 				if (message.action === 'disable') this.disable();
 				sendResponse({ success: true });
-				return true; // 非同期レスポンス対応
+				return true;
 			});
 		}
 
@@ -110,7 +146,7 @@
 			this.#enabled = true;
 			this.#injectStyles();
 			this.#startObserver();
-			this.#runHideCycle();
+			this.#scheduleHideCycle();
 			this.#checkShortsPage();
 			this.#styleCheckTimer = setInterval(() => {
 				if (this.#enabled && !document.getElementById(CONFIG.STYLE_ID)) {
@@ -140,16 +176,31 @@
 
 		#startObserver() {
 			if (this.#observer) return;
-			// document.body が存在しない場合は早期リターン（document_start対応）
 			if (!document.body) {
-				// bodyが利用可能になったら再試行
 				document.addEventListener('DOMContentLoaded', () => this.#startObserver(), {
 					once: true,
 				});
 				return;
 			}
-			this.#observer = new MutationObserver(() => this.#debouncedHide());
-			this.#observer.observe(document.body, { childList: true, subtree: true });
+
+			// パフォーマンス最適化: 可能な限り対象コンテナのみ監視
+			const targetNode =
+				document.querySelector('#content, ytd-page-manager') || document.body;
+
+			this.#observer = new MutationObserver((mutations) => {
+				// 高速フィルタ: 追加されたノードがある場合のみ処理
+				let hasAddedNodes = false;
+				for (const mutation of mutations) {
+					if (mutation.addedNodes.length > 0) {
+						hasAddedNodes = true;
+						break;
+					}
+				}
+				if (hasAddedNodes) {
+					this.#debouncedHide();
+				}
+			});
+			this.#observer.observe(targetNode, { childList: true, subtree: true });
 		}
 
 		#stopObserver() {
@@ -163,21 +214,35 @@
 				clearInterval(this.#styleCheckTimer);
 				this.#styleCheckTimer = null;
 			}
+			if (this.#navigationRecheckTimer) {
+				clearTimeout(this.#navigationRecheckTimer);
+				this.#navigationRecheckTimer = null;
+			}
 		}
 
 		#debouncedHide() {
 			if (this.#debounceTimer) clearTimeout(this.#debounceTimer);
-			this.#debounceTimer = setTimeout(() => this.#runHideCycle(), CONFIG.DEBOUNCE_MS);
+			this.#debounceTimer = setTimeout(() => this.#scheduleHideCycle(), CONFIG.DEBOUNCE_MS);
+		}
+
+		#scheduleHideCycle() {
+			if (!this.#enabled) return;
+			// requestAnimationFrameでメインスレッドブロックを回避
+			requestAnimationFrame(() => this.#runHideCycle());
 		}
 
 		#runHideCycle() {
 			if (!this.#enabled) return;
 			this.#hideShortBlocks();
-			this.#hideByTextScan();
+			this.#hideShortsItems();
 			this.#hideShortTags();
 			this.#hideSearchShorts();
 		}
 
+		/**
+		 * Shortsシェルフ全体を非表示にする
+		 * タイトルに「ショート」「Shorts」がある場合のみ
+		 */
 		#hideShortBlocks() {
 			const notHidden = `:not([${CONFIG.HIDDEN_ATTR}="1"])`;
 			const selector = BLOCK_CONTAINER_SELECTORS.map((s) => s + notHidden).join(',');
@@ -187,30 +252,37 @@
 				const titleEl = container.querySelector(
 					'.yt-shelf-header-layout__title, h2, .yt-core-attributed-string, span#title',
 				);
-				if (titleEl && /ショート|shorts/i.test(titleEl.textContent || '')) {
+				if (titleEl && /^ショート$|^shorts$/i.test((titleEl.textContent || '').trim())) {
 					container.setAttribute(CONFIG.HIDDEN_ATTR, '1');
 					this.#processedElements.add(container);
 				}
 			}
 		}
 
-		#hideByTextScan() {
-			const elements = document.querySelectorAll(
-				'#video-title, a.yt-simple-endpoint, yt-formatted-string',
-			);
-			for (const el of elements) {
-				const parent = el.closest(
-					'ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, ytd-rich-item-renderer',
-				);
-				if (!parent || this.#processedElements.has(parent)) continue;
-				const text = (el.textContent || '').toLowerCase();
-				if (text.includes('#shorts') || text.includes('ショート')) {
-					parent.setAttribute(CONFIG.HIDDEN_ATTR, '1');
-					this.#processedElements.add(parent);
+		/**
+		 * 個別のShorts動画アイテムを非表示にする
+		 * ★ 厳格なURL判定: href="/shorts/" を含むリンクがある場合のみ
+		 */
+		#hideShortsItems() {
+			const notHidden = `:not([${CONFIG.HIDDEN_ATTR}="1"])`;
+			const selector = VIDEO_ITEM_SELECTORS.map((s) => s + notHidden).join(',');
+			const items = document.querySelectorAll(selector);
+
+			for (const item of items) {
+				if (this.#processedElements.has(item)) continue;
+
+				// ★ 厳格なURL判定: /shorts/ リンクがある場合のみ非表示
+				const shortsLink = item.querySelector('a[href^="/shorts/"], a[href*="/shorts/"]');
+				if (shortsLink) {
+					item.setAttribute(CONFIG.HIDDEN_ATTR, '1');
+					this.#processedElements.add(item);
 				}
 			}
 		}
 
+		/**
+		 * Shortsタグチップを非表示にする
+		 */
 		#hideShortTags() {
 			const notHidden = `:not([${CONFIG.HIDDEN_ATTR}="1"])`;
 			const selector = `yt-chip-cloud-chip-renderer${notHidden}`;
@@ -225,20 +297,26 @@
 			}
 		}
 
+		/**
+		 * 検索結果ページ専用のShorts非表示処理
+		 */
 		#hideSearchShorts() {
 			if (!window.location.pathname.startsWith('/results')) return;
+
 			const notHidden = `:not([${CONFIG.HIDDEN_ATTR}="1"])`;
+
+			// Shortsセクション全体を非表示
 			const sectionSelector = SEARCH_SHORTS_SELECTORS.map((s) => s + notHidden).join(',');
 			const shortsElements = document.querySelectorAll(sectionSelector);
 			for (const el of shortsElements) {
 				el.setAttribute(CONFIG.HIDDEN_ATTR, '1');
 				this.#processedElements.add(el);
 			}
+
+			// 個別のShorts動画を非表示（検索結果内）
 			const videoLinks = document.querySelectorAll(`a[href^="/shorts/"]`);
 			for (const link of videoLinks) {
-				const videoContainer = link.closest(
-					'ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer',
-				);
+				const videoContainer = link.closest(VIDEO_ITEM_SELECTORS.join(','));
 				if (!videoContainer || videoContainer.getAttribute(CONFIG.HIDDEN_ATTR) === '1')
 					continue;
 				videoContainer.setAttribute(CONFIG.HIDDEN_ATTR, '1');
@@ -260,8 +338,18 @@
 
 			// 常にスタイル注入とhide処理を実行（SPA対応）
 			this.#injectStyles();
-			this.#runHideCycle();
+			this.#scheduleHideCycle();
 			this.#checkShortsPage();
+
+			// ★ 遅延再チェック: DOMの遅延ロードに対応
+			if (this.#navigationRecheckTimer) {
+				clearTimeout(this.#navigationRecheckTimer);
+			}
+			this.#navigationRecheckTimer = setTimeout(() => {
+				if (this.#enabled) {
+					this.#scheduleHideCycle();
+				}
+			}, CONFIG.NAVIGATION_RECHECK_MS);
 		}
 
 		#checkShortsPage() {
@@ -279,7 +367,7 @@
 			document.querySelectorAll('video').forEach((video) => {
 				video.pause();
 				video.muted = true;
-				video.currentTime = 0; // 最初に戻す (音漏れ防止)
+				video.currentTime = 0;
 			});
 		}
 
@@ -413,23 +501,25 @@
 			return { title, likes };
 		}
 
+		/**
+		 * ★ 強化版: いいね数をDOMから抽出
+		 * YouTubeのDOM構造変更に対応するため複数パターンを試行
+		 */
 		#extractLikesFromDOM() {
-			// パターン1: Shortsプレイヤーの「いいね」ボタン横のテキスト
-			const likeButtonSelectors = [
-				'ytd-toggle-button-renderer#like-button yt-formatted-string',
-				'#like-button yt-formatted-string',
-				'like-button-view-model button-view-model button span',
-				'[aria-label*="いいね"] yt-formatted-string',
-				'[aria-label*="like"] yt-formatted-string',
-				'ytd-menu-renderer yt-formatted-string.ytd-toggle-button-renderer',
+			// パターン1: Shorts専用セレクタ（新UI）
+			const shortsLikeSelectors = [
+				'ytd-reel-video-renderer[is-active] #like-button yt-formatted-string',
+				'ytd-shorts-player-controls #like-button span',
+				'#like-button button span[role="text"]',
+				'like-button-view-model button span',
+				'.YtShortsLikeButtonViewModelHost span',
 			];
 
-			for (const selector of likeButtonSelectors) {
+			for (const selector of shortsLikeSelectors) {
 				try {
 					const el = document.querySelector(selector);
-					if (el && el.textContent) {
+					if (el?.textContent) {
 						const text = el.textContent.trim();
-						// 数値っぽい文字列かチェック（0も許容）
 						if (/^[\d,.]+[万億KMB]?$/.test(text) || text === '0') {
 							return text;
 						}
@@ -439,17 +529,40 @@
 				}
 			}
 
-			// パターン2: aria-labelから抽出
+			// パターン2: 汎用セレクタ
+			const genericSelectors = [
+				'ytd-toggle-button-renderer#like-button yt-formatted-string',
+				'#like-button yt-formatted-string',
+				'[aria-label*="いいね"] yt-formatted-string',
+				'[aria-label*="like"] yt-formatted-string',
+				'ytd-menu-renderer yt-formatted-string.ytd-toggle-button-renderer',
+			];
+
+			for (const selector of genericSelectors) {
+				try {
+					const el = document.querySelector(selector);
+					if (el?.textContent) {
+						const text = el.textContent.trim();
+						if (/^[\d,.]+[万億KMB]?$/.test(text) || text === '0') {
+							return text;
+						}
+					}
+				} catch {
+					/* continue */
+				}
+			}
+
+			// パターン3: aria-labelから抽出
 			const ariaElements = document.querySelectorAll('[aria-label]');
 			for (const el of ariaElements) {
 				const label = el.getAttribute('aria-label') || '';
 				// 日本語: "1.2万 件の高評価" or "高評価 1,234"
 				const jpMatch = label.match(
-					/(\d[\d,.]*[万億]?)\s*件?の?高評価|高評価\s*(\d[\d,.]*[万億]?)/,
+					/([\d,.]+[万億]?)\s*件?の?高評価|高評価\s*([\d,.]+[万億]?)/,
 				);
 				if (jpMatch) return jpMatch[1] || jpMatch[2];
-				// 英語: "1.2K likes" or "like this video along with 1,234 other people"
-				const enMatch = label.match(/(\d[\d,.]*[KMB]?)\s*likes?/i);
+				// 英語: "1.2K likes"
+				const enMatch = label.match(/([\d,.]+[KMB]?)\s*likes?/i);
 				if (enMatch) return enMatch[1];
 			}
 
@@ -457,20 +570,19 @@
 		}
 
 		async #fetchLikeCount(videoId) {
-			// DOM抽出で取れなかった場合のフォールバック
 			try {
 				const response = await fetch(`https://www.youtube.com/shorts/${videoId}`);
 				if (response.ok) {
 					const text = await response.text();
 					const patterns = [
-						/"toggledText":\s*\{[^}]*"simpleText":\s*"(\d[\d,.]*[万億KMB]?)"/,
-						/"likeCount":\s*"?(\d[\d,.]*)"/,
-						/"likeCountText":[^}]*"simpleText":\s*"(\d[\d,.]*[万億KMB]?)"/,
-						/"accessibilityText":\s*"[^"]*?(\d[\d,.]*[万億KMB]?)\s*件?の?(?:高評価|likes?)"/i,
+						/"toggledText":\s*\{[^}]*"simpleText":\s*"([\d,.]+[万億KMB]?)"/,
+						/"likeCount":\s*"?([\d,.]+)"/,
+						/"likeCountText":[^}]*"simpleText":\s*"([\d,.]+[万億KMB]?)"/,
+						/"accessibilityText":\s*"[^"]*?([\d,.]+[万億KMB]?)\s*件?の?(?:高評価|likes?)"/i,
 					];
 					for (const regex of patterns) {
 						const match = text.match(regex);
-						if (match && match[1]) return match[1];
+						if (match?.[1]) return match[1];
 					}
 				}
 			} catch {
@@ -494,7 +606,11 @@
 				/* ignore */
 			}
 
-			const likes = await this.#fetchLikeCount(videoId);
+			// DOMからの再取得を試行（遅延ロード対応）
+			let likes = this.#extractLikesFromDOM();
+			if (!likes) {
+				likes = await this.#fetchLikeCount(videoId);
+			}
 			if (likes) {
 				const likesEl = overlay.querySelector('#anti-shorts-likes');
 				if (likesEl) likesEl.textContent = `イイネ数：${likes}`;
@@ -593,7 +709,6 @@
 				width: '0%',
 				background: 'linear-gradient(90deg, #ff0000, #ff4444)',
 				borderRadius: '3px',
-				// transition削除: requestAnimationFrameで直接制御
 			});
 
 			// ロゴ (再生ヘッド)
@@ -603,10 +718,10 @@
 				position: 'absolute',
 				top: '50%',
 				left: '0%',
-				transform: 'translateY(-50%)', // X軸は left で制御、Yのみ中央寄せ
+				transform: 'translateY(-50%)',
 				width: '36px',
 				height: '36px',
-				marginLeft: '-18px', // 幅の半分を左にオフセットして中央配置
+				marginLeft: '-18px',
 				borderRadius: '50%',
 				background: '#1a1a1a',
 				border: '3px solid #ff0000',
@@ -614,7 +729,6 @@
 				display: 'flex',
 				justifyContent: 'center',
 				alignItems: 'center',
-				// transition削除: requestAnimationFrameで直接制御
 			});
 
 			const logoImg = document.createElement('img');
@@ -640,37 +754,32 @@
 			container.append(title, percentText, seekBarContainer, subText);
 			overlay.appendChild(container);
 
-			// ===== スタイル (キーフレームなし、JSアニメーション) =====
 			document.body.appendChild(overlay);
 
 			// ===== アニメーションロジック =====
 			const duration = CONFIG.RESTORE_DELAY;
 			const startTime = Date.now();
 
-			// 可愛らしい「戻り」を含むキーフレーム定義 (0-100%)
-			// 進行しつつ、途中で少し戻る playful な動き
 			const keyframes = [
 				{ time: 0, value: 0 },
 				{ time: 0.15, value: 20 },
-				{ time: 0.2, value: 15 }, // 少し戻る
+				{ time: 0.2, value: 15 },
 				{ time: 0.35, value: 40 },
-				{ time: 0.4, value: 35 }, // 少し戻る
+				{ time: 0.4, value: 35 },
 				{ time: 0.55, value: 60 },
 				{ time: 0.65, value: 75 },
-				{ time: 0.7, value: 70 }, // 少し戻る
+				{ time: 0.7, value: 70 },
 				{ time: 0.85, value: 90 },
-				{ time: 0.9, value: 85 }, // 最後のフェイント
+				{ time: 0.9, value: 85 },
 				{ time: 1.0, value: 100 },
 			];
 
 			const interpolate = (progress) => {
-				// 現在の進行度に対応するキーフレーム区間を見つける
 				for (let i = 0; i < keyframes.length - 1; i++) {
 					const curr = keyframes[i];
 					const next = keyframes[i + 1];
 					if (progress >= curr.time && progress <= next.time) {
 						const localProgress = (progress - curr.time) / (next.time - curr.time);
-						// イージング (easeInOutQuad)
 						const eased =
 							localProgress < 0.5
 								? 2 * localProgress * localProgress
