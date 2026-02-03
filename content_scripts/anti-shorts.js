@@ -1,5 +1,5 @@
 /**
- * Anti YouTube Shorts v3.3.0
+ * Anti YouTube Shorts v3.1.2
  * パフォーマンス最適化版
  */
 (() => {
