@@ -163,23 +163,44 @@
 			// コンテナ
 			document.querySelectorAll(CONTAINER_SEL.map((s) => s + nh).join(',')).forEach((c) => {
 				if (this.#proc.has(c)) return;
+
+				// タイトルによる判定
 				const t = c.querySelector(
 					'.yt-shelf-header-layout__title,h2,.yt-core-attributed-string,span#title',
 				);
-				if (t && /^(ショート|shorts)$/i.test(t.textContent?.trim() || '')) {
+				const isShortsTitle =
+					t &&
+					/^(ショート|shorts|エンターテインメント|コメディ|生活様式|ゲーム文化)$/i.test(
+						t.textContent?.trim() || '',
+					);
+
+				// コンテンツによる判定（内部にShortsアイテムがあるか）
+				const hasShortsItems = c.querySelector(
+					'ytm-shorts-lockup-view-model, ytm-shorts-lockup-view-model-v2, ytd-reel-item-renderer',
+				);
+
+				// リンクによる判定（/shorts/へのリンクを含むか）
+				// 注: 誤爆を防ぐため、grid-shelf-view-modelなど明確なシェルフ構造の場合に有効
+				const hasShortsLinks = c.querySelector('a[href^="/shorts/"]');
+
+				if (isShortsTitle || hasShortsItems || hasShortsLinks) {
 					c.setAttribute(HIDDEN_ATTR, '1');
 					this.#proc.add(c);
-					this.#checkEmptySection(c); // 親セクションの空チェック
+					this.#checkEmptySection(c);
 				}
 			});
 
 			// 個別アイテム
 			document.querySelectorAll(ITEM_SEL.map((s) => s + nh).join(',')).forEach((el) => {
 				if (this.#proc.has(el)) return;
-				if (el.querySelector('a[href^="/shorts/"],a[href*="/shorts/"]')) {
+				// 個別アイテム自体がShortsコンポーネントか、Shortsリンクを含んでいれば隠す
+				if (
+					el.tagName.toLowerCase().includes('shorts') ||
+					el.querySelector('a[href^="/shorts/"],a[href*="/shorts/"]')
+				) {
 					el.setAttribute(HIDDEN_ATTR, '1');
 					this.#proc.add(el);
-					this.#checkEmptySection(el); // 親セクションの空チェック
+					this.#checkEmptySection(el);
 				}
 			});
 
