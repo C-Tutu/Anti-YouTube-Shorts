@@ -1,5 +1,5 @@
 /**
- * Anti YouTube Shorts v3.0.0 - Popup Controller
+ * Anti YouTube Shorts v3.1.0 - Popup Controller
  * 最適化・エラーハンドリング強化
  */
 

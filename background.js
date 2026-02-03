@@ -1,6 +1,6 @@
 /**
- * Anti YouTube Shorts v3.0.0 - Service Worker
- * 拡張機能のバックグランドスクリプト
+ * Anti YouTube Shorts v3.1.0 - Service Worker
+ * 拡張機能のバックグラウンドスクリプト
  */
 
 // インストール/更新時の初期化
@@ -12,9 +12,9 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 
 	// 初回インストール時のログ
 	if (reason === 'install') {
-		console.log('[Anti-Shorts] v3.0.0 インストール完了');
+		console.log('[Anti-Shorts] v3.1.0 インストール完了');
 	} else if (reason === 'update') {
-		console.log('[Anti-Shorts] v3.0.0 アップデート完了');
+		console.log('[Anti-Shorts] v3.1.0 アップデート完了');
 	}
 });
 
