@@ -1,0 +1,18 @@
+{
+	"name": "anti-youtube-shorts",
+	"version": "3.2.0",
+	"private": true,
+	"description": "YouTubeのShortsを非表示にして、あなたの大切な時間を守る拡張機能",
+	"scripts": {
+		"build": "node build.mjs",
+		"build:prod": "node build.mjs --production",
+		"watch": "node build.mjs --watch",
+		"typecheck": "tsc --noEmit",
+		"lint": "tsc --noEmit --strict"
+	},
+	"devDependencies": {
+		"@types/chrome": "^0.0.287",
+		"esbuild": "^0.25.0",
+		"typescript": "~5.8.0"
+	}
+}
