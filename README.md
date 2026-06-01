@@ -2,16 +2,14 @@
 
 <img src="assets/icons/icon128.png" alt="Anti YouTube Shorts Logo" width="120" style="border-radius:20px;"><br>
 
-# 🚫 Anti YouTube Shorts
+# Anti YouTube Shorts
 
-**YouTube のショート動画を完全に非表示にして、あなたの大切な時間を守ります。**  
-"つい見ちゃう"を卒業し、より穏やかなネット体験を。
+YouTube の Shorts 動画、Shorts タブ、サイドバー導線を非表示にする Chromium 拡張機能です。
 
-![GitHub last commit](https://img.shields.io/github/last-commit/C-Tutu/anti-youtube-shorts?color=brightgreen)
-![Version](https://img.shields.io/badge/version-3.2.0-blue)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Version](https://img.shields.io/badge/version-3.1.0-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 </div>
 
@@ -19,123 +17,94 @@
 
 ## 概要
 
-YouTube のホーム、検索結果、サイドバー、タグ領域から Shorts 項目を検出し、非表示にします。  
-ショート動画へ直接アクセスした場合、オーバーレイでブロックし、通常プレイヤーでの再生オプションを提供します。
+Anti YouTube Shorts は、YouTube 上に現れる Shorts 関連要素を検出して非表示にします。ホーム、検索結果、関連動画、サイドバー、チャンネルページの Shorts タブ、Shorts 選択バーを対象にします。
 
-## 動作環境
+`/shorts/` ページへ直接アクセスした場合は動画再生を止め、ブロック画面を表示します。必要な場合はサムネイルから通常の `/watch?v=...` 形式で開けます。
+
+## 主な機能
+
+- Shorts 動画カード、棚、検索結果、関連動画を非表示
+- サイドバーの「ショート」導線を非表示
+- チャンネルページの Shorts タブを非表示
+- `/shorts/` URL の直接再生をブロック
+
+## 対応環境
 
 | OS | ブラウザ |
 |---|---|
 | Windows 10/11 | Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera |
-| macOS 12+ (Monterey 以降) | Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera |
+| macOS 12 以降 | Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera |
 
-> **対応基準**: Chromium ベースのブラウザで Manifest V3 をサポートするすべてのブラウザで動作します。
-
-## 主な機能 (v3.2.0)
-
-- **完全なショート非表示**: ホーム、検索結果、関連動画などあらゆる場所からShortsを排除。
-- **誤爆防止**: 通常の動画や検索結果を誤って隠さないよう、検出ロジックを強化。
-- **パフォーマンス最適化**: 事前コンパイル済みのセレクタとキャッシュを活用し、ブラウザへの負荷を最小限に。
-- **ブロック機能**: `/shorts/` URLへの直接アクセスを遮断し、誘惑を断ち切ります。
-- **通常再生**: ブロック画面のサムネイルをクリックすると、通常のYouTubeプレイヤーで再生できます。
-- **セキュリティ強化**: XSS脆弱性を排除し、安全なDOM構築を採用。
+Manifest V3 に対応した Chromium ベースブラウザで動作します。
 
 ## インストール
 
-### ユーザー向け（ビルド済み配布）
+1. このリポジトリをダウンロードまたはクローンします。
+2. 依存関係をインストールしてビルドします。
 
-1. 右上の **「Code → Download ZIP」** からソースコードをダウンロード・展開。
-2. 以下の手順でビルドを実行:
-   ```bash
-   npm install
-   npm run build
-   ```
-3. ブラウザで拡張機能の管理ページを開く：
-   - **Chrome**: `chrome://extensions/`
-   - **Edge**: `edge://extensions/`
-   - **Brave**: `brave://extensions/`
-4. 「**デベロッパーモード**」を有効化。
-5. 「**パッケージ化されていない拡張機能を読み込む**」から **`dist/`** フォルダを選択。
+```bash
+npm install
+npm run build
+```
+
+3. ブラウザの拡張機能管理ページを開きます。
+   - Chrome: `chrome://extensions/`
+   - Edge: `edge://extensions/`
+   - Brave: `brave://extensions/`
+4. デベロッパーモードを有効化します。
+5. 「パッケージ化されていない拡張機能を読み込む」から `dist/` を選択します。
+
+開発中にリポジトリルートを読み込む場合も、`background.js`、`content_scripts/anti-shorts.js`、`popup/popup.js` を最新ビルドと同期してください。
 
 ## 使い方
 
-- **有効化 (ON)**: 自動的にすべての Shorts が非表示になります。
-- **無効化 (OFF)**: アイコンをクリックしてスイッチを OFF にすると、Shorts が再表示されます。
-- **動画ブロック解除**: `/shorts/` URL にアクセス時、サムネイルをクリックすると通常プレイヤー（`/watch?v=...`）で再生できます。
+- 拡張機能を ON にすると Shorts 関連要素を自動で非表示にします。
+- 拡張機能を OFF にすると非表示マーカーと補正済みタブバーを復元します。
+- Shorts ブロック画面では、サムネイルから通常動画ページへ移動できます。
 
 ## 開発
 
-### 前提条件
-
-- **Node.js** 18 以上
-- **npm** 9 以上
-
-### セットアップ
-
 ```bash
-# 依存パッケージのインストール
 npm install
-
-# 開発ビルド（ソースマップ付き）
-npm run build
-
-# ファイル変更の自動検知ビルド
-npm run watch
-
-# 型チェック
 npm run typecheck
-
-# プロダクションビルド（ミニファイ）
+npm run build
 npm run build:prod
+npm run watch
 ```
 
-### プロジェクト構造
-
-```
-Anti-YouTube-Shorts/
-├── src/                          # TypeScript ソースコード
-│   ├── types.ts                  # 共通型定義
-│   ├── constants.ts              # 定数・セレクタ・正規表現
-│   ├── background/
-│   │   └── index.ts              # Service Worker
-│   ├── content/
-│   │   ├── index.ts              # コンテンツスクリプト エントリポイント
-│   │   ├── ShortsManager.ts      # Shorts管理統合モジュール
-│   │   ├── DOMObserver.ts        # DOM監視モジュール
-│   │   ├── VideoController.ts    # 動画制御モジュール
-│   │   ├── MetaFetcher.ts        # メタデータ取得モジュール
-│   │   └── OverlayRenderer.ts    # オーバーレイ描画モジュール
-│   └── popup/
-│       └── popup.ts              # ポップアップ制御
-├── content_scripts/
-│   └── anti-shorts.css           # コンテンツスタイル
-├── popup/
-│   ├── popup.html                # ポップアップ UI
-│   └── popup.css                 # ポップアップスタイル
-├── assets/                       # アイコン・フォント
-├── dist/                         # ビルド出力（.gitignore 対象）
-├── manifest.json                 # 拡張機能マニフェスト (V3)
-├── tsconfig.json                 # TypeScript 設定
-├── build.mjs                     # esbuild ビルドスクリプト
-└── package.json
-```
-
-### 技術スタック
-
-| 項目 | 詳細 |
+| コマンド | 内容 |
 |---|---|
-| 言語 | TypeScript 5.8 (Strict Mode) |
-| ビルドツール | esbuild |
-| マニフェスト | Chrome Extensions Manifest V3 |
-| 型チェック | `tsc --noEmit --strict` |
+| `npm run typecheck` | TypeScript の型チェック |
+| `npm run build` | 開発ビルドと `dist/` 生成 |
+| `npm run build:prod` | ミニファイ付き本番ビルド |
+| `npm run watch` | 変更監視ビルド |
+
+## 実装メモ
+
+- `src/content/ShortsManager.ts`: Shorts 判定、非表示、タブバー補正、URL ブロックを統合
+- `src/content/DOMObserver.ts`: DOM 変更をデバウンスし、変更近傍だけをスキャン
+- `src/content/VideoController.ts`: Shorts ページ上の動画停止と復元を担当
+- `src/content/MetaFetcher.ts`: タイトルやいいね数の取得とキャッシュを担当
+- `src/content/OverlayRenderer.ts`: ブロック画面と復元画面を安全に DOM 構築
+- `src/constants.ts`: セレクタ、正規表現、タイミング値を集約
+
+## パフォーマンス方針
+
+- CSS で即時に隠せる要素は先に隠す
+- DOM 監視は `href`、`title`、`aria-label`、`aria-selected`、`tab-title` を中心に見る
+- 高頻度な `style` / `class` 変更はチャンネルタブ周辺だけ処理する
+- `Shorts` 判定用セレクタは事前生成し、スキャン時の文字列再生成を避ける
+- YouTube の仮想 DOM 再利用に備え、通常コンテンツへ変わった要素は復元する
 
 ## トラブルシューティング
 
-- **Shorts が消えない**: YouTube の仕様変更の可能性があります。拡張機能を再読み込み（OFF→ON）してください。
-- **フル動画が見られない**: バージョン v3.2.0 以降で修正済みです。最新版をご利用ください。
-- **表示崩れ**: 検索結果等で若干の空白が生じるのは仕様です（仮想スクロール最適化のため）。
-- **ビルドエラー**: `node_modules` を削除し `npm install` を再実行してください。
+- Shorts が残る場合は、拡張機能を OFF から ON に戻して YouTube を再読み込みしてください。
+- チャンネルページの下線バーがずれる場合は、最新ビルドの `dist/` を読み込んでいるか確認してください。
+- `/shorts/` ページで音が出る場合は、拡張機能が有効か、対象サイト権限が付いているか確認してください。
+- ビルドに失敗する場合は、`node_modules` を削除して `npm install` を再実行してください。
 
 ## ライセンス
 
 [MIT License](LICENSE)
+
+> ※README.mdはCodexが記述しています。

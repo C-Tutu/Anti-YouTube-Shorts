@@ -10,6 +10,9 @@
 import { OVERLAY_ID, RESTORE_DURATION_MS } from '../constants';
 import type { VideoMeta } from '../types';
 
+/** 復元アニメーション用オーバーレイのID */
+const RESTORE_OVERLAY_ID = 'anti-shorts-restore-overlay' as const;
+
 /**
  * ブロックオーバーレイおよび復元アニメーションのDOM生成を担当する
  *
@@ -25,9 +28,12 @@ export class OverlayRenderer {
 	 * @returns 生成されたオーバーレイ要素
 	 */
 	showBlockOverlay(videoId: string, meta: VideoMeta): HTMLDivElement {
-		// 既存オーバーレイが存在すれば再生成しない
 		const existing = document.getElementById(OVERLAY_ID);
-		if (existing) return existing as HTMLDivElement;
+		if (existing) {
+			const overlay = existing as HTMLDivElement;
+			this.syncVideoContent(overlay, videoId, meta);
+			return overlay;
+		}
 
 		const iconUrl = chrome.runtime.getURL('assets/icons/icon48.png');
 		const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
@@ -94,9 +100,13 @@ export class OverlayRenderer {
 		thumbImg.src = thumbUrl;
 		thumbImg.alt = '';
 		thumbImg.className = 'video-thumbnail';
+		thumbImg.dataset.fallbackSrc = thumbFallback;
 		thumbImg.addEventListener('error', () => {
-			thumbImg.src = thumbFallback;
-		}, { once: true });
+			const fallbackSrc = thumbImg.dataset.fallbackSrc;
+			if (fallbackSrc && thumbImg.src !== fallbackSrc) {
+				thumbImg.src = fallbackSrc;
+			}
+		});
 
 		// 再生ボタンオーバーレイ（SVGは静的コンテンツのためinnerHTMLを使用）
 		const playOverlay = document.createElement('div');
@@ -135,6 +145,7 @@ export class OverlayRenderer {
 		overlay.appendChild(panel);
 
 		document.body.appendChild(overlay);
+		this.syncVideoContent(overlay, videoId, meta);
 		return overlay;
 	}
 
@@ -150,7 +161,9 @@ export class OverlayRenderer {
 	 *
 	 * @param title - 更新するタイトル文字列
 	 */
-	updateTitle(title: string): void {
+	updateTitle(title: string, videoId?: string): void {
+		if (!this.isCurrentOverlay(videoId)) return;
+
 		const el = document.getElementById('anti-shorts-title-msg');
 		if (el) {
 			el.textContent = `「${title}」がブロックされています。`;
@@ -162,7 +175,9 @@ export class OverlayRenderer {
 	 *
 	 * @param likeCount - いいね数文字列
 	 */
-	updateLikeCount(likeCount: string): void {
+	updateLikeCount(likeCount: string, videoId?: string): void {
+		if (!this.isCurrentOverlay(videoId)) return;
+
 		const el = document.getElementById('anti-shorts-likes');
 		if (el) {
 			el.textContent = `イイネ数：${likeCount}`;
@@ -176,9 +191,12 @@ export class OverlayRenderer {
 	 *
 	 * @param onComplete - アニメーション完了後のコールバック
 	 */
-	showRestoreAnimation(onComplete: () => void): void {
+	showRestoreAnimation(onComplete: () => void): () => void {
+		this.removeRestoreOverlay();
+
+		let cancelled = false;
 		const overlay = document.createElement('div');
-		overlay.id = 'anti-shorts-restore-overlay';
+		overlay.id = RESTORE_OVERLAY_ID;
 
 		Object.assign(overlay.style, {
 			position: 'fixed',
@@ -297,6 +315,8 @@ export class OverlayRenderer {
 		const startTime = performance.now();
 
 		const animate = (now: number): void => {
+			if (cancelled) return;
+
 			const elapsed = Math.min((now - startTime) / RESTORE_DURATION_MS, 1);
 			const value = elapsed * 100;
 
@@ -319,5 +339,62 @@ export class OverlayRenderer {
 		};
 
 		requestAnimationFrame(animate);
+
+		return () => {
+			cancelled = true;
+			overlay.remove();
+		};
+	}
+
+	/**
+	 * 復元アニメーションオーバーレイを削除する
+	 */
+	removeRestoreOverlay(): void {
+		document.getElementById(RESTORE_OVERLAY_ID)?.remove();
+	}
+
+	/**
+	 * 既存オーバーレイを現在の動画IDに同期する
+	 */
+	private syncVideoContent(overlay: HTMLDivElement, videoId: string, meta: VideoMeta): void {
+		const encodedVideoId = encodeURIComponent(videoId);
+		const watchUrl = `https://www.youtube.com/watch?v=${encodedVideoId}`;
+		const thumbUrl = `https://i.ytimg.com/vi/${encodedVideoId}/maxresdefault.jpg`;
+		const thumbFallback = `https://i.ytimg.com/vi/${encodedVideoId}/hqdefault.jpg`;
+
+		overlay.dataset.videoId = videoId;
+
+		const titleEl = overlay.querySelector<HTMLElement>('#anti-shorts-title-msg');
+		if (titleEl) {
+			titleEl.textContent = `「${meta.title || '読み込み中...'}」がブロックされています。`;
+		}
+
+		const likesEl = overlay.querySelector<HTMLElement>('#anti-shorts-likes');
+		if (likesEl) {
+			likesEl.textContent = `イイネ数：${meta.likeCount || '---'}`;
+		}
+
+		const thumbLink = overlay.querySelector<HTMLAnchorElement>('.thumbnail-link');
+		if (thumbLink) {
+			thumbLink.href = watchUrl;
+		}
+
+		const thumbImg = overlay.querySelector<HTMLImageElement>('.video-thumbnail');
+		if (thumbImg) {
+			thumbImg.dataset.fallbackSrc = thumbFallback;
+			if (thumbImg.dataset.videoId !== videoId) {
+				thumbImg.dataset.videoId = videoId;
+				thumbImg.src = thumbUrl;
+			}
+		}
+	}
+
+	/**
+	 * 更新対象のオーバーレイが現在の動画IDと一致するか判定する
+	 */
+	private isCurrentOverlay(videoId?: string): boolean {
+		if (!videoId) return true;
+		const overlay = document.getElementById(OVERLAY_ID) as HTMLDivElement | null;
+		return overlay?.dataset.videoId === videoId;
 	}
 }

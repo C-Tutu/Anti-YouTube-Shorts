@@ -19,6 +19,18 @@ const LIKE_SELECTORS: readonly string[] = [
  * 前段の取得が失敗した場合に次の手段へフォールバックする。
  */
 export class MetaFetcher {
+	/** videoIdごとのタイトルキャッシュ */
+	private readonly titleCache = new Map<string, string>();
+
+	/** videoIdごとのいいね数キャッシュ */
+	private readonly likeCountCache = new Map<string, string>();
+
+	/** videoIdごとの取得中タイトルリクエスト */
+	private readonly titleRequests = new Map<string, Promise<string>>();
+
+	/** videoIdごとの取得中いいね数リクエスト */
+	private readonly likeCountRequests = new Map<string, Promise<string>>();
+
 	/**
 	 * DOMから現在表示中の動画メタデータを取得する
 	 *
@@ -39,15 +51,23 @@ export class MetaFetcher {
 	 * @returns タイトル文字列。取得失敗時は空文字列
 	 */
 	async fetchTitle(videoId: string): Promise<string> {
-		try {
-			const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/shorts/${videoId}&format=json`;
-			const response = await fetch(url);
-			if (!response.ok) return '';
+		if (!videoId) return '';
 
-			const data = (await response.json()) as OEmbedResponse;
-			return data.title ?? '';
-		} catch {
-			return '';
+		const cached = this.titleCache.get(videoId);
+		if (cached) return cached;
+
+		const pending = this.titleRequests.get(videoId);
+		if (pending) return pending;
+
+		const request = this.fetchTitleUncached(videoId);
+		this.titleRequests.set(videoId, request);
+
+		try {
+			const title = await request;
+			if (title) this.titleCache.set(videoId, title);
+			return title;
+		} finally {
+			this.titleRequests.delete(videoId);
 		}
 	}
 
@@ -61,6 +81,53 @@ export class MetaFetcher {
 	 * @returns いいね数文字列。取得失敗時は空文字列
 	 */
 	async fetchLikeCount(videoId: string): Promise<string> {
+		if (!videoId) return '';
+
+		const cached = this.likeCountCache.get(videoId);
+		if (cached) return cached;
+
+		const pending = this.likeCountRequests.get(videoId);
+		if (pending) return pending;
+
+		const request = this.fetchLikeCountUncached(videoId);
+		this.likeCountRequests.set(videoId, request);
+
+		try {
+			const likeCount = await request;
+			if (likeCount) this.likeCountCache.set(videoId, likeCount);
+			return likeCount;
+		} finally {
+			this.likeCountRequests.delete(videoId);
+		}
+	}
+
+	/**
+	 * DOM要素から現在表示中動画のいいね数だけを取得する
+	 */
+	getLikeCountFromDOM(): string {
+		return this.extractLikesFromDOM();
+	}
+
+	/**
+	 * YouTube oEmbed APIから動画タイトルをキャッシュなしで取得する
+	 */
+	private async fetchTitleUncached(videoId: string): Promise<string> {
+		try {
+			const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/shorts/${videoId}&format=json`;
+			const response = await fetch(url);
+			if (!response.ok) return '';
+
+			const data = (await response.json()) as OEmbedResponse;
+			return data.title ?? '';
+		} catch {
+			return '';
+		}
+	}
+
+	/**
+	 * YouTubeのHTMLソースからいいね数をキャッシュなしで取得する
+	 */
+	private async fetchLikeCountUncached(videoId: string): Promise<string> {
 		try {
 			const response = await fetch(`https://www.youtube.com/shorts/${videoId}`);
 			if (!response.ok) return '';

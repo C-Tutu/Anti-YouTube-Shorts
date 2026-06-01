@@ -6,7 +6,7 @@ import type { ExtensionSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 
 /** 拡張機能のバージョン */
-const EXTENSION_VERSION = '3.2.0' as const;
+const EXTENSION_VERSION = '3.2.2' as const;
 
 /**
  * インストールまたはアップデート時の初期化処理

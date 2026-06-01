@@ -9,9 +9,21 @@
  * Shortsページ検出時に動画の再生を強制停止し、
  * 音漏れや意図しない自動再生を防止する。
  */
+interface VideoState {
+	readonly muted: boolean;
+	readonly paused: boolean;
+	readonly currentTime: number;
+}
+
 export class VideoController {
 	/** 動画再生抑制タイマーのID */
 	private suppressorInterval: ReturnType<typeof setInterval> | null = null;
+
+	/** 拡張機能が状態を変更した動画 */
+	private touchedVideos = new Set<HTMLVideoElement>();
+
+	/** 動画ごとの変更前状態 */
+	private videoStates = new WeakMap<HTMLVideoElement, VideoState>();
 
 	/**
 	 * ページ内の全動画を即座に停止・ミュートする
@@ -19,9 +31,10 @@ export class VideoController {
 	pauseAll(): void {
 		const videos = document.querySelectorAll<HTMLVideoElement>('video');
 		for (const video of videos) {
+			this.rememberState(video);
 			video.pause();
 			video.muted = true;
-			video.currentTime = 0;
+			this.setCurrentTime(video, 0);
 		}
 	}
 
@@ -38,6 +51,7 @@ export class VideoController {
 			const videos = document.querySelectorAll<HTMLVideoElement>('video');
 			for (const video of videos) {
 				if (!video.paused) {
+					this.rememberState(video);
 					video.pause();
 					video.muted = true;
 				}
@@ -65,12 +79,48 @@ export class VideoController {
 	 * 自動再生ポリシーにより再生が拒否される場合は無視する。
 	 */
 	resumeAll(): void {
-		const videos = document.querySelectorAll<HTMLVideoElement>('video');
-		for (const video of videos) {
-			video.muted = false;
-			video.play().catch(() => {
-				// 自動再生ポリシーによる拒否は無視
-			});
+		for (const video of this.touchedVideos) {
+			const state = this.videoStates.get(video);
+			if (!state) continue;
+
+			video.muted = state.muted;
+			this.setCurrentTime(video, state.currentTime);
+
+			if (state.paused) {
+				video.pause();
+			} else {
+				video.play().catch(() => {
+					// 自動再生ポリシーによる拒否は無視
+				});
+			}
+		}
+
+		this.touchedVideos.clear();
+		this.videoStates = new WeakMap<HTMLVideoElement, VideoState>();
+	}
+
+	/**
+	 * 変更前の動画状態を一度だけ保存する
+	 */
+	private rememberState(video: HTMLVideoElement): void {
+		if (this.videoStates.has(video)) return;
+
+		this.videoStates.set(video, {
+			muted: video.muted,
+			paused: video.paused,
+			currentTime: Number.isFinite(video.currentTime) ? video.currentTime : 0,
+		});
+		this.touchedVideos.add(video);
+	}
+
+	/**
+	 * currentTimeの復元失敗を通常操作へ漏らさない
+	 */
+	private setCurrentTime(video: HTMLVideoElement, currentTime: number): void {
+		try {
+			video.currentTime = currentTime;
+		} catch {
+			// メディア状態によってcurrentTime変更が拒否される場合は無視
 		}
 	}
 }
