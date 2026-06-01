@@ -6,7 +6,7 @@
 
 YouTube の Shorts 動画、Shorts タブ、サイドバー導線を非表示にする Chromium 拡張機能です。
 
-![Version](https://img.shields.io/badge/version-3.1.0-blue)
+![Version](https://img.shields.io/badge/version-3.3.0-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -30,8 +30,8 @@ Anti YouTube Shorts は、YouTube 上に現れる Shorts 関連要素を検出�
 
 ## 対応環境
 
-| OS | ブラウザ |
-|---|---|
+| OS            | ブラウザ                                             |
+| ------------- | ---------------------------------------------------- |
 | Windows 10/11 | Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera |
 | macOS 12 以降 | Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera |
 
@@ -48,9 +48,9 @@ npm run build
 ```
 
 3. ブラウザの拡張機能管理ページを開きます。
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-   - Brave: `brave://extensions/`
+    - Chrome: `chrome://extensions/`
+    - Edge: `edge://extensions/`
+    - Brave: `brave://extensions/`
 4. デベロッパーモードを有効化します。
 5. 「パッケージ化されていない拡張機能を読み込む」から `dist/` を選択します。
 
@@ -72,12 +72,12 @@ npm run build:prod
 npm run watch
 ```
 
-| コマンド | 内容 |
-|---|---|
-| `npm run typecheck` | TypeScript の型チェック |
-| `npm run build` | 開発ビルドと `dist/` 生成 |
-| `npm run build:prod` | ミニファイ付き本番ビルド |
-| `npm run watch` | 変更監視ビルド |
+| コマンド             | 内容                      |
+| -------------------- | ------------------------- |
+| `npm run typecheck`  | TypeScript の型チェック   |
+| `npm run build`      | 開発ビルドと `dist/` 生成 |
+| `npm run build:prod` | ミニファイ付き本番ビルド  |
+| `npm run watch`      | 変更監視ビルド            |
 
 ## 実装メモ
 

@@ -6,7 +6,7 @@ import type { ExtensionSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 
 /** 拡張機能のバージョン */
-const EXTENSION_VERSION = '3.2.2' as const;
+const EXTENSION_VERSION = '3.3.0' as const;
 
 /**
  * インストールまたはアップデート時の初期化処理
@@ -30,13 +30,11 @@ chrome.runtime.onInstalled.addListener(({ reason }: chrome.runtime.InstalledDeta
  *
  * enabledの値が変更された場合、アクションバッジのテキストと背景色を更新する。
  */
-chrome.storage.onChanged.addListener(
-	(changes: { [key: string]: chrome.storage.StorageChange }) => {
-		const enabledChange = changes['enabled'];
-		if (enabledChange) {
-			const isEnabled = enabledChange.newValue as boolean;
-			void chrome.action.setBadgeText({ text: isEnabled ? 'ON' : '' });
-			void chrome.action.setBadgeBackgroundColor({ color: '#ff0000' });
-		}
-	},
-);
+chrome.storage.onChanged.addListener((changes: { [key: string]: chrome.storage.StorageChange }) => {
+	const enabledChange = changes['enabled'];
+	if (enabledChange) {
+		const isEnabled = enabledChange.newValue as boolean;
+		void chrome.action.setBadgeText({ text: isEnabled ? 'ON' : '' });
+		void chrome.action.setBadgeBackgroundColor({ color: '#ff0000' });
+	}
+});

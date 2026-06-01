@@ -1,1 +1,21 @@
-"use strict";(()=>{var t={enabled:!1};var o="3.1.0";chrome.runtime.onInstalled.addListener(({reason:e})=>{chrome.storage.sync.get(t,n=>{chrome.storage.sync.set({enabled:!!n.enabled})}),e==="install"?console.log(`[Anti-Shorts] v${o} インストール完了`):e==="update"&&console.log(`[Anti-Shorts] v${o} アップデート完了`)});chrome.storage.onChanged.addListener(e=>{let n=e.enabled;if(n){let r=n.newValue;chrome.action.setBadgeText({text:r?"ON":""}),chrome.action.setBadgeBackgroundColor({color:"#ff0000"})}});})();
+'use strict';
+(() => {
+	var t = { enabled: !1 };
+	var o = '3.3.0';
+	chrome.runtime.onInstalled.addListener(({ reason: e }) => {
+		(chrome.storage.sync.get(t, (n) => {
+			chrome.storage.sync.set({ enabled: !!n.enabled });
+		}),
+			e === 'install'
+				? console.log(`[Anti-Shorts] v${o} インストール完了`)
+				: e === 'update' && console.log(`[Anti-Shorts] v${o} アップデート完了`));
+	});
+	chrome.storage.onChanged.addListener((e) => {
+		let n = e.enabled;
+		if (n) {
+			let r = n.newValue;
+			(chrome.action.setBadgeText({ text: r ? 'ON' : '' }),
+				chrome.action.setBadgeBackgroundColor({ color: '#ff0000' }));
+		}
+	});
+})();
